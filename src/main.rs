@@ -17,10 +17,9 @@ fn main() {
         args.input.display()
     ));
 
-    let out_file = if let Some(path) = args.output.take() {
-        path
-    } else {
-        args.input.with_extension("png")
+    let out_file = match args.output.take() {
+        Some(path) => path,
+        None => args.input.with_extension("png"),
     };
 
     let out_file = File::create(out_file).expect("Failed to create output file");

@@ -14,7 +14,7 @@ pub fn parse_to_linear(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
     let mut tiled_image = src.copy_to_bytes(raw_size).reader();
     let mut indexed_linear_image = vec![0; raw_size];
 
-    assert!(palette_size == 16);
+    assert!(palette_size <= 16);
 
     // image is 4bpp so we need to divide by two
     let column = width / tile_width;
