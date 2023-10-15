@@ -1,8 +1,8 @@
+mod tx;
 mod txb;
 
-use std::{fs::File, path::PathBuf};
-
 use clap::Parser;
+use std::{ffi::OsStr, fs::File, path::PathBuf};
 
 #[derive(Parser, Debug)]
 struct Cli {
@@ -18,12 +18,16 @@ fn main() {
     ));
 
     let out_file = match args.output.take() {
-        Some(path) => path,
-        None => args.input.with_extension("png"),
-    };
+        Some(path) => File::create(path),
+        None => File::create(args.input.with_extension("png")),
+    }
+    .expect("Failed to create output file");
 
-    let out_file = File::create(out_file).expect("Failed to create output file");
-    let (width, height, image_data) = txb::parse_to_linear(&input);
+    let (width, height, image_data) = match args.input.extension().and_then(OsStr::to_str) {
+        Some("5txb") => txb::convert(&input),
+        Some("5tx") => tx::convert(&input),
+        _ => panic!("Unsupported file format"),
+    };
 
     let mut png_writer = create_png_writer(out_file, width as u32, height as u32);
     png_writer.write_image_data(&image_data).unwrap();

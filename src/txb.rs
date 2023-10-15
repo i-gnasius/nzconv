@@ -1,7 +1,7 @@
 use bytes::Buf;
 use std::io::prelude::Read;
 
-pub fn parse_to_linear(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
+pub fn convert(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
     let _unknown = src.get_u32_le();
     let width = src.get_u32_le() as usize;
     let height = src.get_u32_le() as usize;
@@ -16,13 +16,14 @@ pub fn parse_to_linear(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
 
     assert!(palette_size <= 16);
 
-    // image is 4bpp so we need to divide by two
-    let column = width / tile_width;
     let row = height / tile_height;
-    let tile_size = tile_width * tile_height / 2;
+    let column = width / tile_width;
 
+    // image is 4bpp so we need to divide by two
+    let tile_size = tile_width * tile_height / 2;
     let mut tile = vec![0; tile_size];
 
+    // convert tiles to linear
     for y in 0..row {
         let base_y = y * tile_height;
 
@@ -53,7 +54,7 @@ pub fn parse_to_linear(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
     (width, height, linear_image)
 }
 
-fn extract_palette(mut slice: &[u8], palette_size: usize) -> Vec<[u8; 3]> {
+pub fn extract_palette(mut slice: &[u8], palette_size: usize) -> Vec<[u8; 3]> {
     let mut pal = Vec::with_capacity(palette_size);
 
     for _ in 0..palette_size {
