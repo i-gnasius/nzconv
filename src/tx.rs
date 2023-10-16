@@ -84,19 +84,32 @@ impl<'a> ImgeChunk<'a> {
     pub fn is_valid(&self) -> bool {
         self.magic == b"IMGE" && self.img_data.len() == self.img_size as usize
     }
+
+    pub fn set_width(&mut self, width: u16) {
+        self.width = width;
+    }
 }
 
 pub fn convert(src: &[u8]) -> (usize, usize, Vec<u8>) {
     let nttx = NttxChunk::new(&src[..]);
     let palt = PaltChunk::new(&src[nttx.chunk_size as usize..]);
-    let imge = ImgeChunk::new(&src[nttx.chunk_size as usize + palt.chunk_size as usize..]);
+    let mut imge = ImgeChunk::new(&src[nttx.chunk_size as usize + palt.chunk_size as usize..]);
 
     assert_eq!(nttx.file_size as usize, src.len());
     assert!(nttx.is_valid() && palt.is_valid() && imge.is_valid());
 
     let palette = super::extract_palette(palt.palette, palt.palette_count as usize);
-    let bpp = 8 / (imge.width as u32 * imge.height as u32 / imge.img_size);
+    let mut bpp = 8 / (imge.width as u32 * imge.height as u32 / imge.img_size);
     let mut image_data = Vec::with_capacity((imge.width * imge.height) as usize * 3);
+
+    // NOTE:
+    // there is no 8bpp format in this file. wrong dimension caused bpp calculation incorrect
+    // some files have wrong width; this will calculate the actual width
+    if bpp == 8 && imge.width as u32 * imge.height as u32 / 2 != imge.img_size {
+        let width = imge.img_size * 2 / imge.height as u32;
+        imge.set_width(width as u16);
+        bpp = 4;
+    }
 
     match bpp {
         4 => {
