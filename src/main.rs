@@ -1,6 +1,7 @@
 mod tx;
 mod txb;
 
+use bytes::Buf;
 use clap::Parser;
 use std::{ffi::OsStr, fs::File, path::PathBuf};
 
@@ -41,4 +42,23 @@ fn create_png_writer(file: File, width: u32, height: u32) -> png::Writer<File> {
     encoder.set_depth(png::BitDepth::Eight);
 
     encoder.write_header().unwrap()
+}
+
+fn extract_palette(mut slice: &[u8], palette_size: usize) -> Vec<[u8; 3]> {
+    let mut pal = Vec::with_capacity(palette_size);
+
+    for _ in 0..palette_size {
+        let col = slice.get_u16_le();
+        let mut r = ((col & 0x1F) * 8) as u8;
+        let mut g = (((col & 0x3E0) >> 5) * 8) as u8;
+        let mut b = (((col & 0x7C00) >> 10) * 8) as u8;
+
+        r = r + r / 32;
+        g = g + g / 32;
+        b = b + b / 32;
+
+        pal.push([r, g, b]);
+    }
+
+    pal
 }

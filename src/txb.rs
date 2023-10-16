@@ -8,7 +8,7 @@ pub fn convert(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
     let tile_width = src.get_u32_le() as usize;
     let tile_height = src.get_u32_le() as usize;
     let palette_size = src.get_u32_le() as usize;
-    let palette = extract_palette(&src.copy_to_bytes(palette_size * 2), palette_size);
+    let palette = super::extract_palette(&src.copy_to_bytes(palette_size * 2), palette_size);
     let raw_size = src.get_u32_le() as usize;
 
     let mut tiled_image = src.copy_to_bytes(raw_size).reader();
@@ -52,23 +52,4 @@ pub fn convert(mut src: &[u8]) -> (usize, usize, Vec<u8>) {
     }
 
     (width, height, linear_image)
-}
-
-pub fn extract_palette(mut slice: &[u8], palette_size: usize) -> Vec<[u8; 3]> {
-    let mut pal = Vec::with_capacity(palette_size);
-
-    for _ in 0..palette_size {
-        let col = slice.get_u16_le();
-        let mut r = ((col & 0x1F) * 8) as u8;
-        let mut g = (((col & 0x3E0) >> 5) * 8) as u8;
-        let mut b = (((col & 0x7C00) >> 10) * 8) as u8;
-
-        r = r + r / 32;
-        g = g + g / 32;
-        b = b + b / 32;
-
-        pal.push([r, g, b]);
-    }
-
-    pal
 }

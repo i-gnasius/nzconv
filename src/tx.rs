@@ -50,7 +50,7 @@ impl<'a> PaltChunk<'a> {
         slice.advance(4);
         let chunk_size = slice.get_u32_le();
         let palette_count = slice.get_u32_le();
-        let palette = &slice[12..12 + palette_count as usize * 2];
+        let palette = &slice[..palette_count as usize * 2];
 
         Self {
             magic,
@@ -86,7 +86,6 @@ impl<'a> ImgeChunk<'a> {
     }
 }
 
-// BUG: generated image using wrong color
 pub fn convert(src: &[u8]) -> (usize, usize, Vec<u8>) {
     let nttx = NttxChunk::new(&src[..]);
     let palt = PaltChunk::new(&src[nttx.chunk_size as usize..]);
@@ -95,11 +94,8 @@ pub fn convert(src: &[u8]) -> (usize, usize, Vec<u8>) {
     assert_eq!(nttx.file_size as usize, src.len());
     assert!(nttx.is_valid() && palt.is_valid() && imge.is_valid());
 
-    // HACK
-    let palette = super::txb::extract_palette(palt.palette, palt.palette_count as usize);
-
-    // FIXME: causing panic because division by zero
-    let bpp = 8 / ((imge.width * imge.height) as u32 / imge.img_size);
+    let palette = super::extract_palette(palt.palette, palt.palette_count as usize);
+    let bpp = 8 / (imge.width as u32 * imge.height as u32 / imge.img_size);
     let mut image_data = Vec::with_capacity((imge.width * imge.height) as usize * 3);
 
     match bpp {
@@ -125,11 +121,8 @@ pub fn convert(src: &[u8]) -> (usize, usize, Vec<u8>) {
                 image_data.extend_from_slice(&palette[px4]);
             }
         }
-        // TODO: add another bpp support
         other => panic!("Unsupported bit per pixel: {other}"),
     };
 
     (imge.width as usize, imge.height as usize, image_data)
 }
-
-// TODO: write function to extract palette
